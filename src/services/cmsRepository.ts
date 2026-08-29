@@ -432,6 +432,90 @@ export class CmsRepository {
     return updated;
   }
 
+  // Remote Cloud Sync (Firestore)
+  static async initRemoteSync(): Promise<void> {
+    if (!db) return;
+    try {
+      // Sync Posts
+      const postsSnap = await getDocs(collection(db, 'posts'));
+      if (!postsSnap.empty) {
+        const remotePosts: Post[] = [];
+        postsSnap.forEach((d) => {
+          remotePosts.push(d.data() as Post);
+        });
+        if (remotePosts.length > 0) {
+          localStorage.setItem(POSTS_KEY, JSON.stringify(remotePosts));
+        }
+      }
+
+      // Sync SiteSettings
+      const settingsSnap = await getDoc(doc(db, 'siteSettings', 'global'));
+      if (settingsSnap.exists()) {
+        const remoteSettings = settingsSnap.data() as SiteSettings;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(remoteSettings));
+        this.applyTheme(remoteSettings);
+      }
+
+      // Sync Pages
+      const pagesSnap = await getDocs(collection(db, 'pages'));
+      if (!pagesSnap.empty) {
+        const stored = localStorage.getItem(PAGES_KEY);
+        const allPages: Record<string, PageContent> = stored ? JSON.parse(stored) : { ...DEFAULT_PAGES };
+        pagesSnap.forEach((d) => {
+          allPages[d.id] = d.data() as PageContent;
+        });
+        localStorage.setItem(PAGES_KEY, JSON.stringify(allPages));
+      }
+
+      notifyListeners();
+    } catch (err) {
+      console.info('Remote cloud sync using local cache:', err);
+    }
+  }
+
+  // Export Data for Deployment or Backup
+  static exportPostsAsJSON(): string {
+    return JSON.stringify(this.getPosts(), null, 2);
+  }
+
+  static exportAllDataAsJSON(): string {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      settings: this.getSettings(),
+      posts: this.getPosts(),
+      pages: {
+        home: this.getPage('home'),
+        company: this.getPage('company'),
+        legalization: this.getPage('legalization'),
+        apply: this.getPage('apply'),
+      },
+    };
+    return JSON.stringify(data, null, 2);
+  }
+
+  static async importPostsFromJSON(jsonString: string): Promise<{ success: boolean; count: number; message: string }> {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!Array.isArray(parsed)) {
+        return { success: false, count: 0, message: '올바른 게시글 배열 형식(JSON Array)이 아닙니다.' };
+      }
+      localStorage.setItem(POSTS_KEY, JSON.stringify(parsed));
+      if (db) {
+        for (const post of parsed) {
+          if (post.id) {
+            try {
+              await setDoc(doc(db, 'posts', post.id), post);
+            } catch {}
+          }
+        }
+      }
+      notifyListeners();
+      return { success: true, count: parsed.length, message: `${parsed.length}개의 공지사항이 성공적으로 적용되었습니다.` };
+    } catch (e: any) {
+      return { success: false, count: 0, message: e?.message || 'JSON 파싱 중 오류가 발생했습니다.' };
+    }
+  }
+
   // Reset to factory defaults
   static async resetDefaults(): Promise<void> {
     try {

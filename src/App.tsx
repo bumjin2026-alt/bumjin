@@ -56,6 +56,7 @@ export default function App() {
   // Subscribe to CMS changes and apply theme
   useEffect(() => {
     CmsRepository.applyTheme(settings);
+    CmsRepository.initRemoteSync();
 
     const unsubscribeCMS = CmsRepository.subscribeToCMS(() => {
       const updatedSettings = CmsRepository.getSettings();
