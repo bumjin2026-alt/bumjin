@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global website configuration, design tokens, contact information, and Naver form link",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string", "maxLength": 100, "description": "Name of the architecture firm" },
+        "representative": { "type": "string", "maxLength": 50, "description": "Chief architect name" },
+        "address": { "type": "string", "maxLength": 200, "description": "Office street address" },
+        "phone": { "type": "string", "maxLength": 30, "description": "Office phone number" },
+        "email": { "type": "string", "maxLength": 100, "description": "Contact email address" },
+        "naverFormUrl": { "type": "string", "maxLength": 300, "description": "Naver form URL for free review applications" },
+        "mapAddress": { "type": "string", "maxLength": 200, "description": "Address query used for Google Maps location" },
+        "primaryColor": { "type": "string", "maxLength": 20, "description": "Primary brand color in hex" },
+        "secondaryColor": { "type": "string", "maxLength": 20, "description": "Secondary brand color in hex" },
+        "accentColor": { "type": "string", "maxLength": 20, "description": "Accent call-to-action color in hex" },
+        "backgroundColor": { "type": "string", "maxLength": 20, "description": "Main background color in hex" },
+        "textColor": { "type": "string", "maxLength": 20, "description": "Body text color in hex" },
+        "fontFamily": { "type": "string", "maxLength": 50, "description": "Selected Korean font family" },
+        "borderRadius": { "type": "string", "maxLength": 20, "description": "Border radius for UI components" },
+        "buttonStyle": { "type": "string", "maxLength": 20, "description": "Button curvature style" },
+        "updatedAt": { "type": "string", "maxLength": 50, "description": "ISO timestamp of last update" }
+      },
+      "required": ["siteName", "representative", "address", "phone", "email", "naverFormUrl"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Notice and case study announcements published by Bumjin Architecture Office",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 200, "description": "Post title" },
+        "content": { "type": "string", "minLength": 2, "maxLength": 50000, "description": "Post body text or HTML" },
+        "thumbnail": { "type": "string", "maxLength": 1000, "description": "Thumbnail image URL" },
+        "isImportant": { "type": "boolean", "description": "Flag indicating if notice is pinned at top" },
+        "isPublished": { "type": "boolean", "description": "Publication status (public vs draft)" },
+        "viewCount": { "type": "integer", "description": "Number of article views" },
+        "author": { "type": "string", "maxLength": 50, "description": "Post author name" },
+        "createdAt": { "type": "string", "maxLength": 50, "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "maxLength": 50, "description": "Last update timestamp" }
+      },
+      "required": ["title", "content", "isImportant", "isPublished"]
+    },
+    "PageContent": {
+      "title": "PageContent",
+      "description": "Customizable content blocks for individual website pages",
+      "type": "object",
+      "properties": {
+        "pageId": { "type": "string", "maxLength": 50, "description": "Unique identifier of page" },
+        "title": { "type": "string", "maxLength": 200, "description": "Page heading" },
+        "subtitle": { "type": "string", "maxLength": 300, "description": "Page subheading" },
+        "sections": { "type": "object", "description": "Structured text sections of the page" },
+        "updatedAt": { "type": "string", "maxLength": 50, "description": "Update timestamp" }
+      },
+      "required": ["pageId", "title"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator record verified against bumjin2026@gmail.com",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 100, "description": "Admin email address" },
+        "role": { "type": "string", "maxLength": 20, "description": "Role level (admin)" },
+        "createdAt": { "type": "string", "maxLength": 50, "description": "Admin creation timestamp" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/siteSettings/{settingId}": {
+      "schema": "SiteSettings",
+      "description": "Stores global site settings and appearance configurations"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Stores firm announcements, legal guides, and case studies"
+    },
+    "/pages/{pageId}": {
+      "schema": "PageContent",
+      "description": "Stores editable text and structure for site pages"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Stores authorized administrator IDs"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "범진건축사사무소",
+  "description": "위반건축물 양성화 및 건축 관련 업무 전문 범진건축사사무소 공식 웹사이트 및 관리자 CMS",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

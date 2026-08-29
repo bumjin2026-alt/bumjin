@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'bumjin2026@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Site Settings Collection
+    match /siteSettings/{settingId} {
+      allow read: if isValidId(settingId);
+      allow create, update, delete: if isValidId(settingId) && isAdmin();
+    }
+
+    // Posts Collection
+    match /posts/{postId} {
+      // Anyone can read published posts; admins can read all (including drafts)
+      allow get: if isValidId(postId) && (resource.data.isPublished == true || isAdmin());
+      allow list: if resource.data.isPublished == true || isAdmin();
+
+      // Admins can create and delete posts
+      allow create, delete: if isValidId(postId) && isAdmin();
+
+      // Updates: Either full admin update OR public viewCount increment
+      allow update: if isValidId(postId) && (
+        isAdmin() ||
+        (
+          // Allow anonymous/public viewCount increment only
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) &&
+          request.resource.data.viewCount == resource.data.viewCount + 1
+        )
+      );
+    }
+
+    // Pages Content Collection
+    match /pages/{pageId} {
+      allow read: if isValidId(pageId);
+      allow create, update, delete: if isValidId(pageId) && isAdmin();
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow read: if isValidId(adminId) && isAdmin();
+      allow write: if false; // Provisioned securely via console or root migration
+    }
+  }
+}

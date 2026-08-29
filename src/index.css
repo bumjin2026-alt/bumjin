@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #0F1E36;
+  --color-secondary: #1E293B;
+  --color-accent: #1E40AF;
+  --color-bg: #FFFFFF;
+  --color-text: #0F172A;
+  --border-radius: 8px;
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom architectural subtle grid */
+.architectural-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(15, 30, 54, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 30, 54, 0.05) 1px, transparent 1px);
+}
