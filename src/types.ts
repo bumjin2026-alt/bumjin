@@ -43,6 +43,8 @@ export interface PageContent {
 }
 
 export interface AdminUser {
+  id?: string;
+  username?: string;
   email: string;
   role: 'admin' | 'viewer';
   displayName?: string;

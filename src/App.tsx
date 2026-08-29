@@ -111,7 +111,7 @@ export default function App() {
   // Route Router Renderer
   const renderCurrentView = () => {
     if (currentRoute === '/admin') {
-      if (!adminUser) {
+      if (!adminUser || !AuthService.isAdmin(adminUser)) {
         return (
           <AdminLoginPage
             onLoginSuccess={(user) => {

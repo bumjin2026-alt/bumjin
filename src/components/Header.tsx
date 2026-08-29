@@ -255,7 +255,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full py-2.5 text-center text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center space-x-1.5"
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>관리자로그인 (bumjin2026@gmail.com)</span>
+                  <span>관리자로그인</span>
                 </button>
               )}
             </div>
