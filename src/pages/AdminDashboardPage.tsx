@@ -62,6 +62,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [importJsonText, setImportJsonText] = useState('');
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSyncingServer, setIsSyncingServer] = useState(false);
+  const [serverSyncMessage, setServerSyncMessage] = useState<string | null>(null);
+
+  const handleSyncToServer = async () => {
+    setIsSyncingServer(true);
+    setServerSyncMessage(null);
+    const res = await CmsRepository.syncPostsToServer();
+    setIsSyncingServer(false);
+    if (res.success) {
+      setServerSyncMessage(res.message);
+      triggerSaveNotification('수정된 공지사항이 배포 소스코드(posts.json)에 성공적으로 저장되었습니다.');
+    } else {
+      setServerSyncMessage('동기화 결과: ' + res.message);
+      triggerSaveNotification(res.message);
+    }
+  };
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(settings);
@@ -541,19 +557,34 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                   <div>
                     <strong className="block text-xs font-bold text-blue-950">
-                      수정된 공지사항 실시간 반영 및 배포 가이드
+                      수정된 공지사항 배포 소스코드 자동 동기화
                     </strong>
-                    <span className="text-[11px] text-blue-800">
-                      대시보드에서 수정한 모든 내용은 현재 즉시 브라우저와 저장소에 저장되며, [배포 동기화 & 백업] 버튼을 통해 배포용 코드를 즉시 내보내거나 동기화할 수 있습니다.
+                    <span className="text-[11px] text-blue-800 block">
+                      대시보드에서 수정한 모든 공지사항은 브라우저에 실시간 보관되며, 아래 버튼을 누르면 배포 소스코드 파일(posts.json)에도 즉시 영구 반영됩니다.
                     </span>
+                    {serverSyncMessage && (
+                      <span className="inline-block mt-1 text-[11px] text-emerald-700 font-bold bg-emerald-100/80 px-2 py-0.5 rounded">
+                        ✓ {serverSyncMessage}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowDeploySyncModal(true)}
-                  className="shrink-0 px-3 py-1.5 text-xs font-bold bg-blue-800 hover:bg-blue-900 text-white rounded-lg transition-colors cursor-pointer"
-                >
-                  배포 데이터 확인
-                </button>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    onClick={handleSyncToServer}
+                    disabled={isSyncingServer}
+                    className="px-3.5 py-2 text-xs font-bold bg-blue-800 hover:bg-blue-900 disabled:opacity-50 text-white rounded-lg transition-colors cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{isSyncingServer ? '소스코드 저장 중...' : '수정내용 소스코드에 영구 저장'}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowDeploySyncModal(true)}
+                    className="px-3 py-2 text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg transition-colors cursor-pointer"
+                  >
+                    배포 데이터 관리
+                  </button>
+                </div>
               </div>
 
               {/* Posts Table */}
@@ -1407,8 +1438,34 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             {/* Action Buttons */}
             <div className="space-y-4">
               <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                1. 배포용 데이터 내보내기 (Export)
+                1. 배포용 데이터 영구 반영 & 내보내기
               </h4>
+
+              {/* Direct Save to Server / Project Source */}
+              <div className="p-4 rounded-xl border-2 border-blue-600 bg-blue-50/70 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Cloud className="w-5 h-5 text-blue-700" />
+                    <strong className="text-sm font-black text-blue-950">배포 소스코드 파일(posts.json)에 직접 영구 저장</strong>
+                  </div>
+                  {serverSyncMessage && (
+                    <span className="text-[11px] text-emerald-700 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                      ✓ 동기화 완료
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-blue-900 leading-relaxed">
+                  브라우저 대시보드에서 수정한 모든 공지사항을 서버 파일(<code className="bg-blue-100 px-1 py-0.5 rounded font-mono text-blue-950 font-bold">src/data/posts.json</code>)에 직접 기록합니다. 새로고침하거나 다른 기기에서 접속해도 수정된 내용이 영구 표시됩니다.
+                </p>
+                <button
+                  onClick={handleSyncToServer}
+                  disabled={isSyncingServer}
+                  className="w-full py-2.5 bg-blue-800 hover:bg-blue-900 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-sm"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isSyncingServer ? '배포 소스코드에 저장 중...' : '지금 바로 배포 소스코드(posts.json)에 영구 저장하기'}</span>
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Copy Posts JSON */}

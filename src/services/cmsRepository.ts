@@ -1,6 +1,7 @@
 import { SiteSettings, Post, PageContent } from '../types';
 import { db } from './firebase';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import initialPostsData from '../data/posts.json';
 
 const SETTINGS_KEY = 'bumjin_site_settings_v1';
 const POSTS_KEY = 'bumjin_posts_v1';
@@ -29,7 +30,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   updatedAt: new Date().toISOString(),
 };
 
-export const DEFAULT_POSTS: Post[] = [
+export const DEFAULT_POSTS: Post[] = (initialPostsData && Array.isArray(initialPostsData) && initialPostsData.length > 0)
+  ? (initialPostsData as Post[])
+  : [
   {
     id: 'post-1',
     title: '[안내] 2026년도 위반건축물 양성화 사전 검토 및 무료 상담 절차 안내',
@@ -323,6 +326,7 @@ export class CmsRepository {
 
     try {
       localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
+      this.persistPostsToServer(posts);
       if (db) {
         try {
           await setDoc(doc(db, 'posts', savedPost.id), savedPost);
@@ -343,6 +347,7 @@ export class CmsRepository {
     posts = posts.filter((p) => p.id !== id);
     try {
       localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
+      this.persistPostsToServer(posts);
       if (db) {
         try {
           await deleteDoc(doc(db, 'posts', id));
@@ -432,8 +437,64 @@ export class CmsRepository {
     return updated;
   }
 
-  // Remote Cloud Sync (Firestore)
+  // Remote Cloud & Local Server Sync
+  static async persistPostsToServer(posts: Post[]): Promise<boolean> {
+    try {
+      const res = await fetch('/api/sync-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  static async syncPostsToServer(): Promise<{ success: boolean; message: string }> {
+    const posts = this.getPosts();
+    try {
+      const res = await fetch('/api/sync-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return { success: true, message: `공지사항 ${data.count || posts.length}건이 배포 소스코드(posts.json)에 영구 저장되었습니다.` };
+      }
+      return { success: false, message: '서버 동기화 중 오류가 발생했습니다.' };
+    } catch (e: any) {
+      return { success: false, message: e?.message || '네트워크 연결 오류' };
+    }
+  }
+
   static async initRemoteSync(): Promise<void> {
+    // 1. Sync from/to Local Server (API)
+    try {
+      const stored = localStorage.getItem(POSTS_KEY);
+      if (stored) {
+        const localPosts = JSON.parse(stored);
+        if (Array.isArray(localPosts) && localPosts.length > 0) {
+          // Immediately sync client's posts to server
+          await this.persistPostsToServer(localPosts);
+        }
+      } else {
+        // If client has no local storage, try fetching from server
+        const res = await fetch('/api/posts');
+        if (res.ok) {
+          const serverPosts = await res.json();
+          if (Array.isArray(serverPosts) && serverPosts.length > 0) {
+            localStorage.setItem(POSTS_KEY, JSON.stringify(serverPosts));
+            notifyListeners();
+          }
+        }
+      }
+    } catch (e) {
+      console.info('Server sync skipped in current environment:', e);
+    }
+
+    // 2. Firestore Sync if configured
     if (!db) return;
     try {
       // Sync Posts
@@ -445,6 +506,7 @@ export class CmsRepository {
         });
         if (remotePosts.length > 0) {
           localStorage.setItem(POSTS_KEY, JSON.stringify(remotePosts));
+          this.persistPostsToServer(remotePosts);
         }
       }
 
@@ -500,6 +562,7 @@ export class CmsRepository {
         return { success: false, count: 0, message: '올바른 게시글 배열 형식(JSON Array)이 아닙니다.' };
       }
       localStorage.setItem(POSTS_KEY, JSON.stringify(parsed));
+      this.persistPostsToServer(parsed);
       if (db) {
         for (const post of parsed) {
           if (post.id) {
